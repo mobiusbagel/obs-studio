@@ -37,11 +37,19 @@ The plugin set from his main OBS (per the OBS 33 Plugin Manager "Missing" list,
 | obs-streamelements-core | https://github.com/StreamElements/obs-streamelements-core | SE.Live left out of the portable build — its transform pipeline conflicts with Move Transition. StreamElements overlays still work as plain browser sources; only the SE.Live docks/editor integration are lost. Main OBS keeps SE.Live; this exclusion is portable-only. |
 
 ## Install notes for the portable OBS 33
-- Prefer the **ZIP** packages from each repo's Releases over the Windows
-  installers — installers target the system OBS / `C:\ProgramData` locations,
-  while the portable build keeps plugins inside its own folder tree.
+- **Use `update-plugins.bat`** (same folder): one click pulls each plugin's
+  latest GitHub release and installs it in the right layout. It tracks
+  installed versions in `plugins-installed.json`, so re-runs only fetch
+  what changed. Close OBS first — the script refuses to run while OBS is open.
+- Destinations (verified in the OBS 33 source,
+  `frontend/plugin-manager/PluginModuleLoader_Windows.cpp`):
+  new layout → `RelWithDebInfo\plugins\<plugin>\<plugin>.dll` + `data\`;
+  legacy layout → `RelWithDebInfo\obs-plugins\64bit\` +
+  `RelWithDebInfo\data\obs-plugins\<plugin>\`. OBS 33 loads both in
+  portable mode; legacy loading is removed in OBS 34.
+- Four Exeldro plugins (3D Effect, Freeze Filter, Gradient Source,
+  Scene Notes Dock) publish **no binaries on GitHub** — Exeldro distributes
+  them via the OBS Forums. The updater copies those four from the main OBS
+  install instead.
 - Watch item: 3D Effect (0.1.4, May 2025) has no OBS 32/33-targeted build —
   test it early; OBS's built-in 3D Transform is the fallback for simple tilts.
-- obs-streamelements-core is the SE.Live core — the Move Transition reference
-  notes a known conflict between Move Transition and SE.Live's transform
-  pipeline. Both are in this set; test scene transitions with both loaded.
