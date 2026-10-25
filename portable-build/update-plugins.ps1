@@ -66,9 +66,12 @@ function Get-LatestAsset($repo, $pattern) {
     return @{ Tag = $rel.tag_name; Asset = $asset }
 }
 
-function Fetch($entry, $repo, $pattern) {
+function Fetch($entry, $repo, $pattern, $verifyPath) {
     $info = Get-LatestAsset $repo $pattern
-    if ($state[$entry] -eq $info.Tag) {
+    # Skip only when the recorded version is current AND the plugin's DLL
+    # is actually where OBS looks for it. A mis-placed install (e.g. a
+    # release that changed its zip shape) re-installs instead of skipping.
+    if ($state[$entry] -eq $info.Tag -and (-not $verifyPath -or (Test-Path $verifyPath))) {
         $script:results += [pscustomobject]@{ Plugin = $entry; Result = "Up to date ($($info.Tag))" }
         return $null
     }
@@ -82,12 +85,21 @@ function Fetch($entry, $repo, $pattern) {
 
 # --- Mode: NewFolder — zip root IS the plugin folder content ---
 function Install-NewFolder($entry, $repo, $pattern, $folderName) {
-    $f = Fetch $entry $repo $pattern
+    $verify = Join-Path (Join-Path $pluginsDir $folderName) "$folderName.dll"
+    $f = Fetch $entry $repo $pattern $verify
     if (-not $f) { return }
     $target = Join-Path $pluginsDir $folderName
     if (Test-Path $target) { Remove-Item $target -Recurse -Force }
     New-Item -ItemType Directory -Force -Path $target | Out-Null
-    Copy-Item (Join-Path $f.Dir "*") $target -Recurse -Force
+    # Some releases wrap the content in a single subfolder instead of
+    # putting it at the zip root; unwrap when there's no DLL at the root.
+    $src = $f.Dir
+    if (-not (Get-ChildItem $src -Filter *.dll -ErrorAction SilentlyContinue)) {
+        $sub = Get-ChildItem $src -Directory | Select-Object -First 1
+        if ($sub) { $src = $sub.FullName }
+    }
+    Copy-Item (Join-Path $src "*") $target -Recurse -Force
+    if (-not (Test-Path $verify)) { throw "$entry installed but $folderName.dll not found at $verify" }
     $state[$entry] = $f.Tag; Save-State
     $script:results += [pscustomobject]@{ Plugin = $entry; Result = "Updated to $($f.Tag) [new layout]" }
 }
@@ -95,13 +107,15 @@ function Install-NewFolder($entry, $repo, $pattern, $folderName) {
 # --- Mode: WrappedFolder — zip has <plugin>\<dll> + <plugin>\data at its root ---
 # (FiniteSingularity switched obs-noise / obs-stroke-glow-shadow to this
 #  shape in their Oct 2026 releases; older releases were legacy-layout zips.)
-function Install-WrappedFolder($entry, $repo, $pattern) {
-    $f = Fetch $entry $repo $pattern
+function Install-WrappedFolder($entry, $repo, $pattern, $folderName) {
+    $verify = Join-Path (Join-Path $pluginsDir $folderName) "$folderName.dll"
+    $f = Fetch $entry $repo $pattern $verify
     if (-not $f) { return }
     $inner = Get-ChildItem $f.Dir -Directory | Select-Object -First 1
     $target = Join-Path $pluginsDir $inner.Name
     if (Test-Path $target) { Remove-Item $target -Recurse -Force }
     Copy-Item $inner.FullName $target -Recurse -Force
+    if (-not (Test-Path $verify)) { throw "$entry installed but $folderName.dll not found at $verify" }
     $state[$entry] = $f.Tag; Save-State
     $script:results += [pscustomobject]@{ Plugin = $entry; Result = "Updated to $($f.Tag) [new layout]" }
 }
@@ -169,12 +183,12 @@ $jobs = @(
     { Install-ProgramData "Source Clone"      "exeldro/obs-source-clone"         "-windows-programdata\.zip$" },
     { Install-ProgramData "Aitum Stream Suite" "Aitum/obs-aitum-stream-suite"    "-windows-programdata\.zip$" },
     { Install-NewFolder   "Advanced Masks"    "FiniteSingularity/obs-advanced-masks"    "-windows-x64\.zip$" "obs-advanced-masks" },
-    { Install-NewFolder   "Composite Blur"    "FiniteSingularity/obs-composite-blur"    "-windows-x64\.zip$" "obs-composite-blur" },
+    { Install-WrappedFolder "Composite Blur"  "FiniteSingularity/obs-composite-blur"    "-windows-x64\.zip$" "obs-composite-blur" },
     { Install-NewFolder   "Retro Effects"     "FiniteSingularity/obs-retro-effects"     "-windows-x64\.zip$" "obs-retro-effects" },
     { Install-ExtractRoot "StreamUP"          "StreamUPTips/obs-streamup"        "-windows-x64-obs33\.zip$" },
     { Install-ExtractRoot "SVG Source"        "FiniteSingularity/svg-source"     "-windows-x64\.zip$" },
-    { Install-WrappedFolder "OBS Noise"         "FiniteSingularity/obs-noise"      "-windows-x64\.zip$" },
-    { Install-WrappedFolder "Stroke Glow Shadow" "FiniteSingularity/obs-stroke-glow-shadow" "-windows-x64\.zip$" },
+    { Install-WrappedFolder "OBS Noise"         "FiniteSingularity/obs-noise"      "-windows-x64\.zip$" "obs-noise" },
+    { Install-WrappedFolder "Stroke Glow Shadow" "FiniteSingularity/obs-stroke-glow-shadow" "-windows-x64\.zip$" "obs-stroke-glow-shadow" },
     { Install-BareDll     "Autostarter"       "DaviBe92/Autostarter"             "^autostarter\.zip$" },
     { Install-FromMain    "3D Effect"         "3d" },
     { Install-FromMain    "Freeze Filter"     "freeze" },

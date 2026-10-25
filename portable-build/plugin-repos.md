@@ -53,6 +53,14 @@ The plugin set from his main OBS (per the OBS 33 Plugin Manager "Missing" list,
   install instead.
 - Watch item: 3D Effect (0.1.4, May 2025) has no OBS 32/33-targeted build —
   test it early; OBS's built-in 3D Transform is the fallback for simple tilts.
+- FiniteSingularity's Oct 2026 releases (noise 1.1.0, stroke-glow-shadow
+  1.6.1, composite-blur 1.6.1) switched their `-windows-x64.zip` to a
+  wrapped-folder shape (`<plugin>\<plugin>.dll` + `data\` inside the zip).
+  Composite Blur's change was silent — the updater reported success but
+  nested the folder one level too deep, so OBS never saw it (caught in the
+  2026-10-25 Plugin Manager audit). The updater now verifies each plugin's
+  DLL actually lands at `plugins\<name>\<name>.dll` before calling it
+  up to date, and re-installs when it didn't.
 - **KNOWN INCOMPATIBLE (2026-10-25): Aitum Stream Suite 1.2.4 crashes OBS 33
   on startup** — its scenes-dock browser hits a CEF check failure
   (exception 80000003 in libcef.dll, called from aitum-stream-suite.dll
