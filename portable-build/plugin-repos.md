@@ -53,3 +53,12 @@ The plugin set from his main OBS (per the OBS 33 Plugin Manager "Missing" list,
   install instead.
 - Watch item: 3D Effect (0.1.4, May 2025) has no OBS 32/33-targeted build —
   test it early; OBS's built-in 3D Transform is the fallback for simple tilts.
+- **KNOWN INCOMPATIBLE (2026-10-25): Aitum Stream Suite 1.2.4 crashes OBS 33
+  on startup** — its scenes-dock browser hits a CEF check failure
+  (exception 80000003 in libcef.dll, called from aitum-stream-suite.dll
+  during OnFirstLoad; two identical crash logs). 1.2.4 (Sep 22, 2026)
+  predates OBS 33's CEF 127→150 jump. Install itself was verified complete
+  (single DLL + locale data). Keep Aitum out of the portable build until
+  Aitum ships an OBS 33 build; the updater will pull it automatically once
+  a newer release exists (rename the quarantined folder back / let the
+  updater recreate it).
