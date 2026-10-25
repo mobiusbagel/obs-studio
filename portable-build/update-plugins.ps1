@@ -92,6 +92,20 @@ function Install-NewFolder($entry, $repo, $pattern, $folderName) {
     $script:results += [pscustomobject]@{ Plugin = $entry; Result = "Updated to $($f.Tag) [new layout]" }
 }
 
+# --- Mode: WrappedFolder — zip has <plugin>\<dll> + <plugin>\data at its root ---
+# (FiniteSingularity switched obs-noise / obs-stroke-glow-shadow to this
+#  shape in their Oct 2026 releases; older releases were legacy-layout zips.)
+function Install-WrappedFolder($entry, $repo, $pattern) {
+    $f = Fetch $entry $repo $pattern
+    if (-not $f) { return }
+    $inner = Get-ChildItem $f.Dir -Directory | Select-Object -First 1
+    $target = Join-Path $pluginsDir $inner.Name
+    if (Test-Path $target) { Remove-Item $target -Recurse -Force }
+    Copy-Item $inner.FullName $target -Recurse -Force
+    $state[$entry] = $f.Tag; Save-State
+    $script:results += [pscustomobject]@{ Plugin = $entry; Result = "Updated to $($f.Tag) [new layout]" }
+}
+
 # --- Mode: ProgramData — zip has <plugin>\bin\64bit\<dll> + <plugin>\data ---
 function Install-ProgramData($entry, $repo, $pattern) {
     $f = Fetch $entry $repo $pattern
@@ -159,8 +173,8 @@ $jobs = @(
     { Install-NewFolder   "Retro Effects"     "FiniteSingularity/obs-retro-effects"     "-windows-x64\.zip$" "obs-retro-effects" },
     { Install-ExtractRoot "StreamUP"          "StreamUPTips/obs-streamup"        "-windows-x64-obs33\.zip$" },
     { Install-ExtractRoot "SVG Source"        "FiniteSingularity/svg-source"     "-windows-x64\.zip$" },
-    { Install-ExtractRoot "OBS Noise"         "FiniteSingularity/obs-noise"      "-windows\.zip$" },
-    { Install-ExtractRoot "Stroke Glow Shadow" "FiniteSingularity/obs-stroke-glow-shadow" "-windows\.zip$" },
+    { Install-WrappedFolder "OBS Noise"         "FiniteSingularity/obs-noise"      "-windows-x64\.zip$" },
+    { Install-WrappedFolder "Stroke Glow Shadow" "FiniteSingularity/obs-stroke-glow-shadow" "-windows-x64\.zip$" },
     { Install-BareDll     "Autostarter"       "DaviBe92/Autostarter"             "^autostarter\.zip$" },
     { Install-FromMain    "3D Effect"         "3d" },
     { Install-FromMain    "Freeze Filter"     "freeze" },
