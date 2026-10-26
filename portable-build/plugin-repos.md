@@ -51,8 +51,13 @@ The plugin set from his main OBS (per the OBS 33 Plugin Manager "Missing" list,
   Scene Notes Dock) publish **no binaries on GitHub** — Exeldro distributes
   them via the OBS Forums. The updater copies those four from the main OBS
   install instead.
-- Watch item: 3D Effect (0.1.4, May 2025) has no OBS 32/33-targeted build —
-  test it early; OBS's built-in 3D Transform is the fallback for simple tilts.
+- 3D Effect (0.1.4, May 2025) has no OBS 32/33-targeted build, but it is
+  **VERIFIED WORKING on OBS 33.0.0-rc3 (2026-10-26)**: Perspective mode
+  rendered true foreshortening on a text source (Rot X 10° / Y 25° /
+  FOV 90), no artifacts or crashes. Caveats: strong FOV/rotation renders
+  outside the source's bounding box, and the known game-capture cursor
+  white-box bug still applies — keep it off captures that need a visible
+  cursor. OBS's built-in 3D Transform remains the fallback for simple tilts.
 - FiniteSingularity's Oct 2026 releases (noise 1.1.0, stroke-glow-shadow
   1.6.1, composite-blur 1.6.1) switched their `-windows-x64.zip` to a
   wrapped-folder shape (`<plugin>\<plugin>.dll` + `data\` inside the zip).
